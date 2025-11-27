@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IB Math Rogue: Negative & Inequalities</title>
+    
+    <!-- MathJax -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg: #15151a;
+            --panel: #202028;
+            --accent: #9b59b6;
+            --gold: #f1c40f;
+            --text: #ecf0f1;
+            --green: #27ae60;
+            --red: #c0392b;
+            --blue: #2980b9;
+            --boss-bg: #2c0505;
+        }
+
+        @font-face { font-family: 'Retro'; src: local('Courier New'), monospace; }
+
+        body { 
+            margin: 0; overflow: hidden; background: var(--bg); 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            touch-action: none; color: var(--text); user-select: none;
+            transition: background 0.5s;
+        }
+
+        /* --- LOADING --- */
+        #loader {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .loader-bar-box { width: 80%; height: 20px; border: 2px solid var(--green); padding: 2px; margin-top: 20px; }
+        .loader-bar { width: 0%; height: 100%; background: var(--green); transition: width 0.2s; }
+        .loader-text { font-family: 'Courier New', monospace; color: var(--green); font-size: 1.2rem; }
+
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .center-content { align-items: center; justify-content: center; }
+        .hidden { display: none !important; }
+
+        /* --- BOSS ANIMATION --- */
+        @keyframes bossPulse {
+            0% { background-color: var(--boss-bg); }
+            50% { background-color: #4a0a0a; }
+            100% { background-color: var(--boss-bg); }
+        }
+        .boss-mode { animation: bossPulse 1.5s infinite alternate; }
+
+        /* --- AVATAR --- */
+        .avatar-box {
+            width: 80px; height: 120px;
+            position: relative; margin: 0 auto 5px auto;
+        }
+        .base-part { position: absolute; background: #555; border-radius: 4px; left: 50%; transform: translateX(-50%); }
+        .base-head { top: 5px; width: 35px; height: 35px; display: flex; justify-content: center; align-items: center; font-size: 28px; z-index: 5; }
+        .base-torso { top: 45px; width: 30px; height: 40px; z-index: 4; border-radius: 6px; }
+        .base-legs  { top: 85px; width: 26px; height: 35px; z-index: 3; background: #444; }
+
+        .layer { position: absolute; left: 50%; transform: translateX(-50%); display:flex; justify-content:center; align-items:center; pointer-events: none;}
+        .l-head { top: -18px; z-index: 20; font-size: 32px; width: 60px; text-align: center; } 
+        .l-body { top: 45px; z-index: 15; font-size: 32px; } 
+        .l-feet { top: 85px; z-index: 16; font-size: 26px; } 
+        .l-main { top: 50px; left: 90%; z-index: 25; font-size: 24px; transform: rotate(-10deg); } 
+        .l-off  { top: 50px; left: 10%; z-index: 24; font-size: 24px; }
+
+        /* --- HUD --- */
+        #gameHUD {
+            height: 140px; flex-shrink: 0;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            padding: 10px 15px; background: rgba(0,0,0,0.4); border-bottom: 1px solid #333;
+            position: relative;
+        }
+
+        .powerup-bar { display: flex; gap: 15px; margin-top: 15px; }
+        .p-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: 2px solid #555;
+            background: #333; color: white; font-size: 24px; cursor: pointer; position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .p-btn:active { transform: scale(0.95); }
+        .p-btn span { font-size: 10px; position: absolute; bottom: -14px; width: 120%; text-align: center; font-weight: bold; text-shadow: 0 1px 2px black;}
+        .p-count { 
+            position: absolute; top: -5px; right: -5px; background: var(--red); 
+            font-size: 10px; width: 18px; height: 18px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid white;
+        }
+        .p-btn.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+
+        /* --- BOSS BAR --- */
+        #bossContainer {
+            position: absolute; bottom: 5px; left: 0; width: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            display: none; 
+        }
+        #bossTitle { color: var(--boss); font-weight: bold; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 5px var(--boss); }
+        #bossHealth { font-size: 1.5rem; letter-spacing: 5px; }
+
+        #timerContainer { height: 8px; flex-shrink: 0; background: #333; width: 100%; }
+        #timerBar { height: 100%; width: 100%; background: var(--green); transition: width 1s linear; }
+
+        #qArea {
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; font-size: 1.3rem; text-align: center; overflow-y: auto; position: relative;
+        }
+        
+        #inputGrid {
+            height: 35%; min-height: 200px; flex-shrink: 0;
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px;
+            background: #1e1e24; border-top: 2px solid #333;
+        }
+
+        .ans-btn {
+            background: #34495e; color: white; border: none; border-radius: 8px;
+            font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 0 #1a252f; transition: 0.2s;
+        }
+        .ans-btn.vanish { transform: scale(0); opacity: 0; pointer-events: none; }
+
+        /* --- SHOP UI --- */
+        .shop-nav { display: flex; gap: 5px; margin-bottom: 10px; width: 95%; max-width:500px;}
+        .nav-btn { flex: 1; background: #333; border:none; color: #888; padding: 10px 5px; cursor: pointer; border-radius: 5px; font-weight: bold; font-size: 0.9rem;}
+        .nav-btn.active { background: var(--accent); color: white; }
+
+        .shop-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            width: 95%; max-width: 500px; flex-grow: 1; overflow-y: auto; padding-bottom: 20px;
+        }
+
+        .shop-item {
+            background: var(--panel); padding: 10px; border-radius: 8px; border: 1px solid #444;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        .buy-btn {
+            background: var(--green); color: white; border: none; padding: 5px 12px;
+            border-radius: 4px; cursor: pointer; font-size: 0.8rem; width: 100%; margin-top: 5px;
+        }
+        .buy-btn:disabled { background: #333; color: #555; }
+        .shop-item.consumable { border-color: var(--blue); }
+        .shop-item.consumable .buy-btn { background: var(--blue); }
+
+        .big-btn {
+            padding: 15px 40px; font-size: 1.4rem; background: var(--gold); color: #222;
+            border: none; border-radius: 50px; font-weight: bold; margin: 15px 0;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.3); flex-shrink: 0;
+        }
+        
+        #damageFlash {
+            position: absolute; top:0; left:0; width:100%; height:100%; background: red;
+            opacity: 0; pointer-events: none; transition: opacity 0.1s; z-index: 999;
+        }
+
+        #deathRecapBox {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--red);
+            padding: 15px; border-radius: 10px; margin-bottom: 20px; max-width: 80%;
+        }
+        .recap-label { color: var(--red); font-size: 0.9rem; margin-bottom: 5px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="loader">
+    <div style="font-size:3rem; margin-bottom:10px;">💾</div>
+    <div class="loader-text" id="loaderText">INITIALIZING...</div>
+    <div class="loader-bar-box"><div class="loader-bar" id="loaderBar"></div></div>
+</div>
+
+<div id="damageFlash"></div>
+
+<!-- MENU SCREEN -->
+<div id="menuScreen" class="screen center-content hidden">
+    <div style="display:flex; flex-direction:column; align-items:center; margin-top:10px;">
+        <h1 style="margin:0;">MATH ROGUE</h1>
+        <div style="color:var(--gold); font-size:1.2rem; font-weight:bold;" id="menuGold">🪙 0</div>
+        <div style="color:#777; font-size:0.9rem; margin-bottom:10px;" id="menuBest">Best: 0</div>
+    </div>
+
+    <div class="avatar-box" style="transform: scale(0.8);">
+         <div class="base-part base-legs"></div>
+         <div class="base-part base-torso"></div>
+         <div class="base-part base-head" id="p-face">😐</div>
+         <div class="layer l-feet" id="p-feet"></div>
+         <div class="layer l-body" id="p-body"></div>
+         <div class="layer l-head" id="p-head"></div>
+         <div class="layer l-off" id="p-off"></div>
+         <div class="layer l-main" id="p-main"></div>
+    </div>
+
+    <div class="shop-nav">
+        <button class="nav-btn active" onclick="switchTab('stats')" id="tabStats">UPGRADES</button>
+        <button class="nav-btn" onclick="switchTab('items')" id="tabItems">ITEMS</button>
+        <button class="nav-btn" onclick="switchTab('gear')" id="tabGear">ARMORY</button>
+    </div>
+
+    <div id="shopStats" class="shop-grid"></div>
+    <div id="shopItems" class="shop-grid hidden"></div>
+    <div id="shopGear" class="shop-grid hidden"></div>
+
+    <button class="big-btn" onclick="startGame()">START RUN</button>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen" class="screen hidden">
+    <div id="gameHUD">
+        
+        <div style="flex:1;">
+            <div style="font-size:1.3rem;" id="hudHearts">❤️❤️❤️</div>
+            <div style="color:var(--gold); font-weight:bold; margin-top:5px;" id="hudGold">🪙 0</div>
+            
+            <div class="powerup-bar">
+                <div class="p-btn" id="btnFifty" onclick="usePowerup('fifty')">
+                    ✂️ <div class="p-count" id="countFifty">0</div>
+                    <span>50/50</span>
+                </div>
+                <div class="p-btn" id="btnFreeze" onclick="usePowerup('freeze')">
+                    ❄️ <div class="p-count" id="countFreeze">0</div>
+                    <span>Stop</span>
+                </div>
+                <div class="p-btn" id="btnSkip" onclick="usePowerup('skip')">
+                    ⏭️ <div class="p-count" id="countSkip">0</div>
+                    <span>Skip</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="bossContainer">
+            <div id="bossTitle">BOSS BATTLE</div>
+            <div id="bossHealth">💜💜💜</div>
+        </div>
+
+        <div class="avatar-box" style="transform: scale(0.9); margin:0; margin-right:10px; transform-origin: top right;">
+             <div class="base-part base-legs"></div>
+             <div class="base-part base-torso"></div>
+             <div class="base-part base-head" id="g-face">😐</div>
+             <div class="layer l-feet" id="g-feet"></div>
+             <div class="layer l-body" id="g-body"></div>
+             <div class="layer l-head" id="g-head"></div>
+             <div class="layer l-off" id="g-off"></div>
+             <div class="layer l-main" id="g-main"></div>
+        </div>
+    </div>
+    
+    <div id="timerContainer"><div id="timerBar"></div></div>
+    
+    <div id="qArea">
+        <span id="mathQ">Loading...</span>
+    </div>
+
+    <div id="inputGrid">
+        <button class="ans-btn" id="btn0" onclick="handleInput(0)"></button>
+        <button class="ans-btn" id="btn1" onclick="handleInput(1)"></button>
+        <button class="ans-btn" id="btn2" onclick="handleInput(2)"></button>
+        <button class="ans-btn" id="btn3" onclick="handleInput(3)"></button>
+    </div>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div id="gameOverScreen" class="screen center-content hidden">
+    <h1 style="color:var(--red)">DEFEAT</h1>
+    <h2>Score: <span id="endScore">0</span></h2>
+    <h3 style="color:var(--gold); margin-top:0;">Gold Earned: <span id="endGold">0</span></h3>
+    
+    <div id="deathRecapBox">
+        <div class="recap-label">THE QUESTION THAT KILLED YOU:</div>
+        <div id="deathQ" style="font-size:1.1rem; margin-bottom:10px;"></div>
+        <div class="recap-label" style="color:var(--green)">CORRECT ANSWER:</div>
+        <div id="deathAns" style="font-weight:bold;"></div>
+    </div>
+
+    <button class="big-btn" onclick="toMenu()">RETURN</button>
+</div>
+
+<script>
+/* --- DATA --- */
+const FACES = ['😐', '😎', '🤠', '🤡', '👽', '💀', '🤖', '😈', '🐹', '🥶'];
+
+const defaultData = {
+    hasPlayed: false,
+    gold: 0, // START WITH 0
+    bestScore: 0,
+    face: null, 
+    stats: { hearts: 0, timer: 0, heal: 0, greed: 0 },
+    items: { fifty: 0, freeze: 0, skip: 0 },
+    gear: { head: 0, body: 0, main: 0, off: 0, feet: 0 },
+    unlockedGear: [0]
+};
+
+let player = JSON.parse(localStorage.getItem('ibRogueFinalV17')) || defaultData;
+
+const statConfig = {
+    hearts: { name: "Vitality", desc: "+1 Max Heart", max: 4, cost: [100, 250, 500, 1000] },
+    timer:  { name: "Chronos", desc: "+10s Max Time", max: 4, cost: [100, 200, 400, 800] },
+    heal:   { name: "Vampirism", desc: "Heal on Streak", max: 4, cost: [200, 400, 800, 1500] },
+    greed:  { name: "Greed", desc: "+20% Gold Gain", max: 4, cost: [150, 300, 600, 1000] }
+};
+
+const itemConfig = {
+    fifty:  { name: "50/50", desc: "Remove 2 answers", cost: 50, icon: "✂️" },
+    freeze: { name: "Time Freeze", desc: "Stop timer (10s)", cost: 75, icon: "❄️" },
+    skip:   { name: "Skip Card", desc: "Skip question", cost: 100, icon: "⏭️" }
+};
+
+const gearConfig = [
+    { id: 101, type: 'head', name: "Beanie", icon: "🧢", cost: 150 },
+    { id: 102, type: 'head', name: "Crown", icon: "👑", cost: 1000 },
+    { id: 103, type: 'head', name: "Wizard", icon: "🧙", cost: 500 },
+    { id: 104, type: 'head', name: "Halo", icon: "😇", cost: 800 },
+    { id: 201, type: 'body', name: "Tee", icon: "👕", cost: 150 },
+    { id: 202, type: 'body', name: "Suit", icon: "👔", cost: 400 },
+    { id: 203, type: 'body', name: "Dress", icon: "👗", cost: 400 },
+    { id: 204, type: 'body', name: "Coat", icon: "🥼", cost: 600 },
+    { id: 301, type: 'main', name: "Pencil", icon: "✏️", cost: 100 },
+    { id: 302, type: 'main', name: "Sword", icon: "🗡️", cost: 800 },
+    { id: 303, type: 'main', name: "Trident", icon: "🔱", cost: 1200 },
+    { id: 401, type: 'off', name: "Calc", icon: "📱", cost: 500 },
+    { id: 402, type: 'off', name: "Shield", icon: "🛡️", cost: 400 },
+    { id: 403, type: 'off', name: "Book", icon: "📘", cost: 200 }
+];
+
+/* --- RUN STATE --- */
+let run = { active: false, hp: 1, maxHp: 1, timerMax: 30, timeLeft: 0, score: 0, gold: 0, streak: 0 };
+let bossState = { active: false, hp: 3, maxHp: 3 }; 
+let questionDeck = []; 
+let gameTimer;
+let currentQ = {};
+let freezeActive = false;
+
+/* --- LOADING SYSTEM --- */
+function fakeLoading(callback) {
+    const texts = ["GENERATING WORLD...", "COMPILING MATH...", "SPAWNING MONSTERS...", "READY!"];
+    let step = 0;
+    const bar = document.getElementById('loaderBar');
+    const txt = document.getElementById('loaderText');
+    
+    let iv = setInterval(() => {
+        step++;
+        bar.style.width = (step * 25) + "%";
+        txt.innerText = texts[step-1] || "LOADING...";
+        if(step >= 4) {
+            clearInterval(iv);
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+                callback();
+            }, 500);
+        }
+    }, 400); 
+}
+
+/* --- SYSTEM --- */
+window.onload = function() {
+    fakeLoading(initGame);
+};
+
+function initGame() {
+    if(!player.face) player.face = FACES[Math.floor(Math.random() * FACES.length)];
+    if(!player.items) player.items = { fifty:0, freeze:0, skip:0 };
+    if(player.bestScore === undefined) player.bestScore = 0;
+
+    if (!player.hasPlayed) {
+        player.hasPlayed = true;
+        save();
+        startGame(); 
+    } else {
+        document.getElementById('menuScreen').classList.remove('hidden');
+        updateUI();
+    }
+}
+
+function save() { localStorage.setItem('ibRogueFinalV17', JSON.stringify(player)); updateUI(); }
+
+function switchTab(tab) {
+    ['stats','items','gear'].forEach(t => {
+        document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).className = (tab===t) ? 'nav-btn active' : 'nav-btn';
+        document.getElementById('shop'+t.charAt(0).toUpperCase()+t.slice(1)).className = (tab===t) ? 'shop-grid' : 'shop-grid hidden';
+    });
+}
+
+function updateUI() {
+    document.getElementById('menuGold').innerText = `🪙 ${Math.floor(player.gold)}`;
+    document.getElementById('menuBest').innerText = `Best Score: ${player.bestScore}`;
+
+    ['p','g'].forEach(p => {
+        document.getElementById(p+'-face').innerText = player.face;
+        ['head','body','main','off','feet'].forEach(s => {
+             let g = gearConfig.find(x => x.id === player.gear[s]);
+             document.getElementById(`${p}-${s}`).innerText = g ? g.icon : "";
+        });
+    });
+
+    const sDiv = document.getElementById('shopStats');
+    sDiv.innerHTML = "";
+    for(let k in statConfig) {
+        let lvl = player.stats[k];
+        let cfg = statConfig[k];
+        let isMax = lvl >= cfg.max;
+        let cost = isMax ? 0 : cfg.cost[lvl];
+        
+        sDiv.innerHTML += `
+        <div class="shop-item">
+            <h3 style="margin:0; color:var(--accent)">${cfg.name} <small>(Lvl ${lvl})</small></h3>
+            <p style="margin:5px 0; font-size:0.75rem; color:#aaa">${cfg.desc}</p>
+            <button class="buy-btn" ${isMax || player.gold < cost ? 'disabled' : ''} 
+                onclick="buyStat('${k}')">${isMax ? 'MAX' : cost + 'g'}</button>
+        </div>`;
+    }
+
+    const iDiv = document.getElementById('shopItems');
+    iDiv.innerHTML = "";
+    for(let k in itemConfig) {
+        let cfg = itemConfig[k];
+        let count = player.items[k];
+        iDiv.innerHTML += `
+        <div class="shop-item consumable">
+            <div style="font-size:1.5rem">${cfg.icon}</div>
+            <h3 style="margin:0; color:var(--blue)">${cfg.name}</h3>
+            <p style="margin:0; font-size:0.7rem; color:#aaa">${cfg.desc}</p>
+            <p style="margin:2px; font-weight:bold;">Owned: ${count}</p>
+            <button class="buy-btn" ${player.gold < cfg.cost ? 'disabled' : ''} 
+                onclick="buyItem('${k}')">${cfg.cost}g</button>
+        </div>`;
+    }
+
+    const gDiv = document.getElementById('shopGear');
+    gDiv.innerHTML = "";
+    gearConfig.sort((a,b) => a.type.localeCompare(b.type));
+    gearConfig.forEach(g => {
+        let owned = player.unlockedGear.includes(g.id);
+        let equipped = player.gear[g.type] === g.id;
+        gDiv.innerHTML += `
+        <div class="shop-item">
+            <div style="font-size:1.5rem;">${g.icon}</div>
+            <h3 style="margin:2px 0; font-size:0.9rem;">${g.name}</h3>
+            <p style="font-size:0.7rem; color:#888; margin:0;">${g.type.toUpperCase()}</p>
+            <button class="buy-btn ${equipped?'equipped':''}" ${!owned && player.gold < g.cost ? 'disabled' : ''} 
+                onclick="handleGear(${g.id})">${owned ? (equipped?"UNEQUIP":"EQUIP") : g.cost+"g"}</button>
+        </div>`;
+    });
+}
+
+function buyStat(key) {
+    let cost = statConfig[key].cost[player.stats[key]];
+    if(player.gold >= cost) { player.gold -= cost; player.stats[key]++; save(); }
+}
+function buyItem(key) {
+    let cost = itemConfig[key].cost;
+    if(player.gold >= cost) { player.gold -= cost; player.items[key]++; save(); }
+}
+function handleGear(id) {
+    let item = gearConfig.find(x => x.id === id);
+    if(player.unlockedGear.includes(id)) {
+        player.gear[item.type] = (player.gear[item.type] === id) ? 0 : id;
+    } else if(player.gold >= item.cost) {
+        player.gold -= item.cost;
+        player.unlockedGear.push(id);
+        player.gear[item.type] = id;
+    }
+    save();
+}
+
+/* --- GAME LOGIC --- */
+function startGame() {
+    run.maxHp = 1 + player.stats.hearts;
+    run.hp = run.maxHp;
+    run.timerMax = 30 + (player.stats.timer * 10); 
+    run.score = 0; run.gold = 0; run.streak = 0; run.active = true;
+    freezeActive = false;
+    bossState = { active: false, hp: 3, maxHp: 3 };
+
+    refillDeck();
+
+    document.getElementById('menuScreen').classList.add('hidden');
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('gameScreen').classList.remove('hidden');
+    
+    updateHUD();
+    nextQuestion(); 
+}
+
+function updateHUD() {
+    let h = "❤️".repeat(run.hp);
+    let m = "<span style='opacity:0.2'>❤️</span>".repeat(run.maxHp - run.hp);
+    document.getElementById('hudHearts').innerHTML = h + m;
+    document.getElementById('hudGold').innerText = `🪙 ${Math.floor(run.gold)}`;
+    
+    const bossDiv = document.getElementById('bossContainer');
+    if(bossState.active) {
+        bossDiv.style.display = 'flex';
+        document.body.classList.add('boss-mode');
+        let bh = "💜".repeat(bossState.hp);
+        let bm = "<span style='opacity:0.3'>💜</span>".repeat(bossState.maxHp - bossState.hp);
+        document.getElementById('bossHealth').innerHTML = bh + bm;
+    } else {
+        bossDiv.style.display = 'none';
+        document.body.classList.remove('boss-mode');
+        document.body.style.background = "#15151a";
+    }
+
+    updatePowerupBtn('Fifty', 'fifty');
+    updatePowerupBtn('Freeze', 'freeze');
+    updatePowerupBtn('Skip', 'skip');
+}
+
+function updatePowerupBtn(elName, keyName) {
+    let count = player.items[keyName];
+    document.getElementById('count'+elName).innerText = count;
+    let btn = document.getElementById('btn'+elName);
+    if(count > 0) btn.classList.remove('disabled'); else btn.classList.add('disabled');
+}
+
+function usePowerup(type) {
+    if(!run.active || player.items[type] <= 0) return;
+    
+    if(type === 'fifty') {
+        if(document.querySelectorAll('.vanish').length > 0) return; 
+        let wrongIndices = [0,1,2,3].filter(i => i !== currentQ.correctIdx);
+        wrongIndices.sort(() => Math.random() - 0.5);
+        document.getElementById('btn'+wrongIndices[0]).classList.add('vanish');
+        document.getElementById('btn'+wrongIndices[1]).classList.add('vanish');
+        player.items.fifty--;
+    } 
+    else if(type === 'freeze') {
+        freezeActive = true;
+        document.getElementById('timerBar').style.background = "#3498db";
+        setTimeout(() => { freezeActive = false; }, 10000); 
+        player.items.freeze--;
+    }
+    else if(type === 'skip') {
+        player.items.skip--;
+        save();
+        nextQuestion(); 
+        return;
+    }
+    save();
+    updateHUD();
+}
+
+function refillDeck() {
+    questionDeck = [];
+    for(let i=1; i<=30; i++) questionDeck.push(i); 
+    questionDeck.sort(() => Math.random() - 0.5);
+}
+
+function nextQuestion() {
+    if(!run.active) return;
+    
+    if (!bossState.active && run.score > 0 && run.score % 10 === 0) {
+        startBossEncounter();
+    }
+
+    if(questionDeck.length === 0) refillDeck();
+    let type = questionDeck.pop(); 
+    
+    let q = generateMath(type, bossState.active);
+    currentQ = q;
+
+    let mDiv = document.getElementById('mathQ');
+    mDiv.innerHTML = `$$ ${q.tex} $$`;
+    if(window.MathJax) MathJax.typesetPromise([mDiv]);
+
+    let opts = [q.ans, ...q.wrongs].sort(()=>Math.random()-0.5);
+    currentQ.correctIdx = opts.indexOf(q.ans);
+    
+    for(let i=0; i<4; i++){
+        let btn = document.getElementById('btn'+i);
+        btn.classList.remove('vanish'); 
+        let txt = opts[i].toString();
+        
+        if(txt.match(/[\^\\_=<>\/]/) || txt.includes('log') || txt.includes('ln') || txt.includes('cap')) {
+            btn.innerHTML = `\\( ${txt} \\)`;
+        } else {
+            btn.innerText = txt;
+        }
+        btn.style.background = ""; 
+    }
+    if(window.MathJax) MathJax.typesetPromise([document.getElementById('inputGrid')]);
+
+    clearInterval(gameTimer);
+    run.timeLeft = run.timerMax;
+    renderTimer();
+    
+    gameTimer = setInterval(() => {
+        if(!freezeActive) run.timeLeft--;
+        renderTimer();
+        if(run.timeLeft <= 0) takeDamage();
+    }, 1000);
+    
+    updateHUD();
+}
+
+function startBossEncounter() {
+    bossState.active = true;
+    bossState.hp = 3;
+}
+
+function renderTimer() {
+    let pct = (run.timeLeft / run.timerMax) * 100;
+    let bar = document.getElementById('timerBar');
+    bar.style.width = pct + "%";
+    if(!freezeActive) bar.style.background = pct < 30 ? "#c0392b" : "#27ae60";
+}
+
+function handleInput(idx) {
+    if(!run.active) return;
+    if(document.getElementById('btn'+idx).classList.contains('vanish')) return;
+
+    if(idx === currentQ.correctIdx) {
+        document.getElementById('btn'+idx).style.background = "#27ae60";
+        
+        if (bossState.active) {
+            bossState.hp--;
+            run.score++; 
+            if(bossState.hp <= 0) {
+                run.gold += 200; 
+                run.hp = run.maxHp; 
+                bossState.active = false;
+            }
+        } else {
+            run.score++; run.streak++;
+            run.gold += (10 * (1 + player.stats.greed * 0.2));
+            let healStep = [0, 10, 8, 6, 4][player.stats.heal];
+            if(healStep > 0 && run.streak % healStep === 0 && run.hp < run.maxHp) run.hp++;
+        }
+        
+        updateHUD();
+        setTimeout(nextQuestion, 200);
+    } else {
+        document.getElementById('btn'+idx).style.background = "#c0392b";
+        takeDamage();
+    }
+}
+
+function takeDamage() {
+    run.streak = 0; 
+    run.hp--;
+    
+    updateHUD();
+    document.getElementById('damageFlash').style.opacity = 0.4;
+    setTimeout(()=>document.getElementById('damageFlash').style.opacity=0, 150);
+
+    if(run.hp <= 0) {
+        run.active = false;
+        clearInterval(gameTimer);
+        player.gold += run.gold;
+        if(run.score > player.bestScore) player.bestScore = run.score;
+        save();
+        
+        document.getElementById('gameScreen').classList.add('hidden');
+        document.getElementById('gameOverScreen').classList.remove('hidden');
+        document.getElementById('endScore').innerText = run.score;
+        document.getElementById('endGold').innerText = Math.floor(run.gold);
+        
+        let mq = document.getElementById('deathQ');
+        mq.innerHTML = `$$ ${currentQ.tex} $$`;
+        let ansTxt = currentQ.ans.toString();
+        if(ansTxt.match(/[\^\\_=<>\/]/) || ansTxt.includes('log') || ansTxt.includes('ln')) {
+            document.getElementById('deathAns').innerHTML = `\\( ${ansTxt} \\)`;
+        } else {
+            document.getElementById('deathAns').innerText = ansTxt;
+        }
+        if(window.MathJax) MathJax.typesetPromise([document.getElementById('gameOverScreen')]);
+
+    } else {
+        if(run.timeLeft <= 0) nextQuestion(); 
+    }
+}
+
+function toMenu() {
+    updateUI();
+    document.getElementById('gameOverScreen').classList.add('hidden');
+    document.getElementById('menuScreen').classList.remove('hidden');
+}
+
+/* --- DYNAMIC MATH GENERATOR (NEGATIVES & INEQUALITIES) --- */
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randNonZero(min, max) { let r = rand(min, max); return r===0 ? 1 : r; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function generateMath(type, isHard) {
+    let q = "", a = "", w = [];
+    let flip = Math.random() > 0.5;
+    
+    // Boss Scalar
+    const range = isHard ? 20 : 10;
+
+    switch(type) {
+        case 1: // Arith Seq
+            let u1 = rand(-range, range);
+            let d = randNonZero(-range, range);
+            let n = isHard ? rand(15,25) : 10;
+            if(flip && !isHard) {
+                q = `u_1=${u1}, d=${d}. \\text{ Find } u_{${n}}`;
+                a = u1 + (n-1)*d; w = [a+d, a-d, a+10];
+            } else {
+                let u2 = u1+d;
+                q = `\\text{Arith: } u_1=${u1}, u_2=${u2}. \\text{ Find } d`;
+                a = d; w = [d+1, d*2, -d];
+            }
+            break;
+        
+        case 2: // Arith Series
+            let su1 = rand(2,15), sd = randNonZero(-5,5), sn = rand(5,10);
+            q = `S_${sn} \\text{ for } ${su1}, ${su1+sd}, ...`;
+            a = (sn/2)*(2*su1 + (sn-1)*sd); w = [a+10, a-sd, a*2]; break;
+        
+        case 3: // Geo Seq (Negatives added)
+            let gu1 = rand(2,6), r = isHard ? randNonZero(-3, -2) : randNonZero(2, 3);
+            let gn = rand(3,5);
+            if(flip && !isHard) {
+                q = `u_1=${gu1}, r=${r}. \\text{ Find } u_{${gn}}`;
+                a = gu1 * Math.pow(r, gn-1); w = [a*r, -a, a/2];
+            } else {
+                 let gu2 = gu1*r;
+                 q = `\\text{Geo: } u_1=${gu1}, u_2=${gu2}. \\text{ Find } r`;
+                 a = r; w = [r+1, r*2, -r];
+            }
+            break;
+        
+        case 4: // Infinite Sum (Alternating allowed)
+            let top = rand(12, 32) * 6; 
+            let r_inf_den = rand(2,3);
+            let r_sign = (isHard && Math.random()>0.5) ? -1 : 1;
+            let r_inf = r_sign * (1/r_inf_den);
+            // Display string for series: a, ar, ...
+            let t2 = top * r_inf;
+            let t2_str = t2 < 0 ? `- ${Math.abs(t2)}` : `+ ${t2}`;
+            q = `S_{\\infty} \\text{ for } ${top} ${t2_str} ...`;
+            a = top / (1 - r_inf); 
+            // Round to integer if possible or 1 decimal
+            if(!Number.isInteger(a)) a = a.toFixed(1);
+            w = [(a*1.5).toFixed(1), (a/2).toFixed(1), (top*2)]; break;
+        
+        case 5: // Exponent Solve
+            let b = rand(2,5); 
+            let ans5 = rand(2, 4);
+            if(isHard) ans5 = -2;
+            let res5 = Math.pow(b, ans5);
+            let displayRes = (ans5 < 0) ? `1/${Math.pow(b, Math.abs(ans5))}` : res5;
+            q = `\\text{Solve } ${b}^x = ${displayRes}`;
+            a = ans5; w = [ans5+1, -ans5, ans5*2]; break;
+        
+        case 6: // Exponent Simplify
+            let p1 = rand(3,8), p2 = rand(2,5), p3 = rand(1,4);
+            q = `\\frac{x^{${p1}} \\cdot x^{${p2}}}{x^{${p3}}}`;
+            a = `x^{${p1+p2-p3}}`; w = [`x^{${p1+p2+p3}}`, `x^{${p1*p2}}`, `x^{${p1-p2}}`]; break;
+        
+        case 7: // Log Eval
+            let lb = rand(2,5);
+            let lpow = rand(2,4);
+            if(isHard) lpow = 0; 
+            let lres = Math.pow(lb,lpow);
+            q = `\\log_{${lb}}(${lres})`;
+            a = lpow; w = [lpow+1, 1, lres]; break;
+        
+        case 8: // Log Laws
+            let la=rand(2,5), lb_val=rand(2,5);
+            q = `\\ln(${la}) + \\ln(${lb_val})`;
+            a = `\\ln(${la*lb_val})`; w = [`\\ln(${la+lb_val})`, `\\ln(${la}^${lb_val})`, `${la+lb_val}`]; break;
+        
+        case 9: // Log Solve
+            let base9 = rand(2,6);
+            q = `\\text{Solve } \\log_{${base9}}(x) = 2`;
+            a = base9*base9; w = [base9*2, base9+2, 1]; break;
+        
+        case 10: // Composite
+            let c_m = randNonZero(-5,5), c_c = rand(1,9);
+            let c_in = rand(1,5);
+            q = `f(x)=${c_m}x, g(x)=x+${c_c}. \\text{ Find } f(g(${c_in}))`;
+            a = c_m * (c_in+c_c); w = [c_m*c_in + c_c, a+c_m, a-c_m]; break;
+        
+        case 11: // Inverse (Harder)
+            if(isHard) {
+                let ra = rand(1,5);
+                q = `f(x)=\\frac{1}{x-${ra}}. \\text{ Find } f^{-1}(x)`;
+                a = `\\frac{1}{x} + ${ra}`; w = [`\\frac{1}{x-${ra}}`, `x + ${ra}`, `-${ra}x`];
+            } else {
+                let im = rand(2,5), ic = rand(1,9);
+                q = `f(x)=${im}x+${ic}. \\text{ Find } f^{-1}(x)`;
+                a = `\\frac{x-${ic}}{${im}}`; w = [`\\frac{x+${ic}}{${im}}`, `${im}x-${ic}`, `\\frac{1}{${im}x}`];
+            }
+            break;
+        
+        case 12: // Vertex (Negative H/K)
+            let h=randNonZero(-9,9), k=randNonZero(-9,9);
+            let vs = isHard ? -1 : 1;
+            let vsStr = vs === 1 ? "" : "-";
+            let hStr = h < 0 ? `+${Math.abs(h)}` : `-${h}`;
+            q = `\\text{Vertex of } y=${vsStr}(x${hStr})^2 ${k<0?k:`+${k}`}`;
+            a = `(${h},${k})`; w = [`(${-h},${k})`, `(${k},${h})`, `(${h}, ${-k})`]; break;
+        
+        case 13: // Discriminant Inequalities
+            // x^2 + bx + k = 0. 
+            // 2 roots -> b^2 - 4k > 0 -> 4k < b^2 -> k < b^2/4
+            let db = rand(2,6)*2; 
+            let crit = (db*db)/4;
+            let mode = rand(0,2); // 0=2roots, 1=0roots, 2=1root
+            if(mode===0) {
+                q = `x^2+${db}x+k=0 \\text{ has 2 distinct roots.}`;
+                a = `k < ${crit}`; w = [`k > ${crit}`, `k = ${crit}`, `k \\le ${crit}`];
+            } else if (mode===1) {
+                q = `x^2+${db}x+k=0 \\text{ has no real roots.}`;
+                a = `k > ${crit}`; w = [`k < ${crit}`, `k = ${crit}`, `k \\ge ${crit}`];
+            } else {
+                q = `x^2+${db}x+k=0 \\text{ has equal roots.}`;
+                a = `k = ${crit}`; w = [`k < ${crit}`, `k > ${crit}`, `k \\ne ${crit}`];
+            }
+            break;
+        
+        case 14: // Vert Asymp
+            let va = rand(2,9);
+            q = `\\text{Vert. Asymp. of } y=\\frac{5}{x-${va}}`;
+            a = `x=${va}`; w = [`y=${va}`, `x=-${va}`, `y=0`]; break;
+        
+        case 15: // Horiz Asymp
+            let ha = rand(2,9);
+            q = `\\text{Horiz. Asymp. of } y=\\frac{${ha}x+1}{x-2}`;
+            a = `y=${ha}`; w = [`x=${ha}`, `y=2`, `y=0`]; break;
+        
+        case 16: // Domain
+            let dk = rand(1,9);
+            q = `\\text{Domain of } f(x)=\\sqrt{x-${dk}}`;
+            a = `x \\ge ${dk}`; w = [`x > ${dk}`, `x \\le ${dk}`, `x < ${dk}`]; break;
+        
+        case 17: // Sigma
+            let end = isHard ? 5 : 3;
+            let coeff = rand(2,3);
+            q = `\\sum_{n=1}^{${end}} (${coeff}n)`;
+            let sum = 0; for(let i=1; i<=end; i++) sum += (coeff*i);
+            a = sum; w = [sum-coeff, sum+coeff, sum*2]; break;
+        
+        case 18: // Gradient (Negatives)
+            let gx1=rand(-5,5), gy1=rand(-5,5);
+            let gm = randNonZero(-4,4);
+            let gx2 = gx1 + 2; 
+            let gy2 = gy1 + (gm*2);
+            q = `\\text{Gradient: } (${gx1},${gy1}) \\to (${gx2},${gy2})`;
+            a = gm; w = [gm+1, -gm, 0]; break;
+        
+        case 19: // Distance (Pythag Generator)
+            let pm = 2, pn = 1, pk = rand(1,3);
+            let legA = pk*(pm*pm - pn*pn); 
+            let legB = pk*(2*pm*pn); 
+            let hyp = pk*(pm*pm + pn*pn); 
+            q = `\\text{Dist. from origin to } (${legA},${legB})`;
+            a = hyp; w = [hyp+2, hyp-1, legA+legB]; break;
+        
+        case 20: // Perpendicular
+            let m_base = rand(2,5);
+            q = `L_1 \\perp L_2, m_1=${m_base}. \\text{ Find } m_2`;
+            a = `-\\frac{1}{${m_base}}`; w = [`${m_base}`, `\\frac{1}{${m_base}}`, `-${m_base}`]; break;
+        
+        case 21: // Exp Growth
+            let start = rand(2,5)*10;
+            let time = rand(2,3);
+            q = `\\text{Doubles every hour. Start=${start}. After ${time}h?}`;
+            a = start * Math.pow(2, time); w = [start*time, start+time, start*3]; break;
+
+        case 22: // Midpoint
+            let mx1=rand(-10,10), my1=rand(-10,10);
+            let mx2=mx1+rand(2,6)*2, my2=my1+rand(2,6)*2; 
+            let maX = (mx1+mx2)/2;
+            let maY = (my1+my2)/2;
+            q = `\\text{Midpoint of } (${mx1},${my1}) \\text{ and } (${mx2},${my2})`;
+            a = `(${maX},${maY})`; w = [`(${maX-1},${maY})`, `(${mx1+mx2},${my1+my2})`, `(${maY},${maX})`]; break;
+        
+        case 23: // Range (Downwards)
+            let rk = rand(1,9);
+            if(isHard) {
+                q = `\\text{Range of } f(x)=${rk} - x^2`;
+                a = `y \\le ${rk}`; w = [`y \\ge ${rk}`, `y < ${rk}`, `x \\le ${rk}`];
+            } else {
+                q = `\\text{Range of } f(x)=x^2+${rk}`;
+                a = `y \\ge ${rk}`; w = [`y > ${rk}`, `y \\le ${rk}`, `x \\ge ${rk}`];
+            }
+            break;
+
+        case 24: // Axis of Symmetry
+            let axB = randNonZero(-8,8)*2; 
+            q = `\\text{Axis of Symmetry: } y=x^2 ${axB<0?axB:`+${axB}`}x + 5`;
+            a = `x=${-axB/2}`; w = [`x=${axB/2}`, `y=${-axB/2}`, `x=${axB}`]; break;
+
+        case 25: // Log Power Rule
+            let lk = rand(2,5);
+            q = `\\text{Simplify } ${lk}\\ln(x)`;
+            a = `\\ln(x^${lk})`; w = [`\\ln(${lk}x)`, `\\ln(x+${lk})`, `(\\ln x)^${lk}`]; break;
+
+        case 26: // Linear Inequality
+            let inq = rand(2,5);
+            let rhs = inq * rand(2,6);
+            q = `\\text{Solve } ${inq}x < ${rhs}`;
+            a = `x < ${rhs/inq}`; w = [`x > ${rhs/inq}`, `x < ${rhs}`, `x = ${rhs/inq}`]; break;
+
+        case 27: // Rational Exponent
+            let bases = [4, 8, 27];
+            let base = pick(bases);
+            let num = 2, den = 3; 
+            if(base===4) { den=2; num=3; } 
+            let res = Math.pow(Math.pow(base, 1/den), num);
+            q = `\\text{Evaluate } ${base}^{${num}/${den}}`;
+            a = res; w = [res*2, base/den, res/2]; break;
+
+        case 28: // Function Eval
+            let fx = rand(2,5), fc = rand(1,9);
+            let fin = rand(-3,3);
+            q = `f(x)=${fx}x-${fc}. \\text{ Find } f(${fin})`;
+            a = (fx*fin)-fc; w = [a+2, a-2, fx*fin]; break;
+
+        case 29: // Difference of Squares
+            let sq = rand(2,9);
+            q = `\\text{Factor } x^2 - ${sq*sq}`;
+            a = `(x-${sq})(x+${sq})`; w = [`(x-${sq})^2`, `(x+${sq})^2`, `x(x-${sq})`]; break;
+
+        case 30: // System of Eq
+            let sx = randNonZero(-5,5);
+            q = `\\text{Solve } y=2x, y=x${sx<0?sx:`+${sx}`}`;
+            a = `x=${sx}`; w = [`x=${sx*2}`, `x=${sx-1}`, `x=0`]; break;
+    }
+    return { tex: q, ans: a, wrongs: w };
+}
+</script>
+</body>
+</html>
